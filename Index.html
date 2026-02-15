@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050505">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>AethelSync | 4K Identity Studio</title>
+    
+    <!-- PWA Install Config -->
+    <link rel="manifest" href='data:application/json,{"name":"AethelSync Studio","short_name":"AethelSync","display":"standalone","start_url":"index.html","background_color":"#050505","theme_color":"#050505","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/10339/10339942.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}'>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        :root { --accent: #3b82f6; --bg: #050505; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: white; margin: 0; padding: 0; scroll-behavior: smooth; }
+        .glass { background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .gradient-text { background: linear-gradient(to right, #60a5fa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #222; border-radius: 3px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: var(--accent); border-radius: 50%; border: 3px solid #000; cursor: pointer; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        #lb-image-wrapper { height: 75vh; width: 100%; display: flex; align-items: center; justify-content: center; background: black; overflow: hidden; }
+        #lb-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .active-thumb { border-color: #3b82f6 !important; transform: scale(1.1); opacity: 1 !important; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header -->
+    <nav class="sticky top-0 z-50 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40"><i class="fa-solid fa-bolt-lightning text-white text-sm"></i></div>
+            <h1 class="text-xl font-extrabold uppercase tracking-tighter">AethelSync</h1>
+        </div>
+        <button onclick="location.reload()" class="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition active:scale-95">Reset</button>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-6 pt-10 pb-24">
+        <!-- Initial Upload -->
+        <div id="step-1" class="space-y-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div class="space-y-2">
+                <h2 class="text-6xl font-black uppercase tracking-tighter leading-none">Identity <span class="gradient-text">Studio</span></h2>
+                <p class="text-gray-500 font-medium text-sm">4K Iterative Reconstruction • Auto Purge • Expansion</p>
+            </div>
+            
+            <div id="drop-zone" class="border-2 border-dashed border-blue-600/30 rounded-[3rem] p-16 bg-blue-600/5 cursor-pointer hover:border-blue-500 transition-all">
+                <input type="file" id="file-input" class="hidden" accept="image/*">
+                <div class="w-20 h-20 bg-blue-600/10 rounded-full flex items-center justify-center mx-auto mb-6"><i class="fa-solid fa-plus text-3xl text-blue-500"></i></div>
+                <h3 class="text-xl font-bold uppercase mb-2">Load Identity Map</h3>
+                <p class="text-xs text-gray-500 max-w-[200px] mx-auto uppercase font-bold tracking-widest">Tap to select photo from your gallery</p>
+            </div>
+        </div>
+
+        <!-- Iterative Studio -->
+        <div id="step-2" class="hidden space-y-12">
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Static Reference -->
+                <div class="w-full lg:w-1/3 space-y-4">
+                    <div class="aspect-square rounded-[2rem] overflow-hidden border border-white/10 bg-black shadow-2xl relative group">
+                        <img id="preview-src" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <span class="text-[10px] font-black uppercase bg-white text-black px-4 py-2 rounded-full">Source Locked</span>
+                        </div>
+                    </div>
+                    <div class="glass p-5 rounded-2xl border-l-4 border-blue-600">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1">Identity Sync Active</p>
+                        <p class="text-[11px] text-gray-400 leading-relaxed italic">Engine is tracking biometric anchors and background depth for synthesis.</p>
+                    </div>
+                </div>
+
+                <!-- Sync Controls -->
+                <div class="w-full lg:w-2/3 glass rounded-[2.5rem] p-8 space-y-8 relative overflow-hidden shadow-2xl">
+                    <div id="loader" class="hidden absolute inset-0 z-10 bg-black/95 flex flex-col items-center justify-center text-center p-10">
+                        <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div>
+                        <h3 class="text-2xl font-black uppercase tracking-tighter mb-2">Syncing Pass...</h3>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Outpainting & Purging Overlays</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-gray-500">Creative Guidance (Positive Prompt)</label>
+                        <textarea id="prompt" class="w-full h-28 bg-black/50 border border-white/10 rounded-2xl p-4 text-xs font-medium focus:border-blue-500 outline-none transition-all" placeholder="Literal instructions (e.g. Sharp eye detail, soft brown midtones, cinematic bokeh)"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-4">
+                            <div class="flex justify-between text-[10px] font-black uppercase text-gray-400"><span>Expand Frame</span><span id="exp-val" class="text-blue-500">+0%</span></div>
+                            <input type="range" id="slide-exp" min="0" max="60" value="0">
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between text-[10px] font-black uppercase text-gray-400"><span>Exposure Intensity</span><span id="ill-val" class="text-blue-500">0%</span></div>
+                            <input type="range" id="slide-ill" min="-100" max="100" value="0">
+                        </div>
+                    </div>
+                    
+                    <button id="sync-btn" class="w-full bg-blue-600 py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-blue-900/40 hover:bg-blue-500 transition-all active:scale-95">Initiate 4K Sync</button>
+                </div>
+            </div>
+
+            <!-- Iteration Gallery -->
+            <div id="gallery-container" class="pt-10 border-t border-white/5 space-y-8">
+                <div class="flex justify-between items-end">
+                    <h2 class="text-4xl font-black uppercase tracking-tighter leading-none">Studio Archive</h2>
+                    <div id="gallery-count" class="text-[10px] font-black bg-white/5 px-4 py-2 rounded-full border border-white/10 text-gray-500 uppercase">0 SYNCS</div>
+                </div>
+                <div id="gallery" class="grid grid-cols-2 md:grid-cols-4 gap-6"></div>
+                <div id="empty-msg" class="py-24 text-center border border-dashed border-white/5 rounded-[3rem] text-gray-700 font-bold uppercase tracking-widest">No Renders in Session</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FULL SCREEN LIGHTBOX -->
+    <div id="lightbox" class="fixed inset-0 z-[1000] bg-black hidden flex-col transition-all">
+        <div class="p-6 flex justify-between items-center z-50">
+            <button onclick="closeLightbox()" class="w-14 h-14 glass rounded-full flex items-center justify-center hover:bg-white/10 active:scale-90 transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+            <div class="flex gap-4">
+                <button id="dl-btn" class="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition"><i class="fa-solid fa-download text-lg"></i></button>
+            </div>
+        </div>
+
+        <div id="lb-image-wrapper" class="relative group">
+            <img id="lb-img" src="" class="animate-in zoom-in-95 duration-500">
+        </div>
+
+        <div class="glass border-t border-white/10 p-8 flex flex-col items-center gap-6 bg-black/90 mt-auto backdrop-blur-3xl z-50">
+            <div id="lb-strip" class="flex gap-4 overflow-x-auto no-scrollbar w-full justify-center px-4"></div>
+            <div class="flex flex-col items-center gap-1">
+                <p class="text-[10px] text-blue-500 font-black uppercase tracking-[0.3em]">Iterative Sync 4K</p>
+                <p class="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Swipe left/right to browse variations</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="alert-container" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[2000] flex flex-col gap-3 pointer-events-none w-full max-w-xs px-6"></div>
+
+    <script type="module">
+        const apiKey = "";
+        let state = { base64: null, gallery: [], index: 0 };
+
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const syncBtn = document.getElementById('sync-btn');
+        const slideExp = document.getElementById('slide-exp');
+        const slideIll = document.getElementById('slide-ill');
+
+        slideExp.oninput = () => document.getElementById('exp-val').innerText = `+${slideExp.value}%`;
+        slideIll.oninput = () => document.getElementById('ill-val').innerText = `${slideIll.value}%`;
+
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = e => {
+            const f = e.target.files[0]; if(!f) return;
+            const r = new FileReader();
+            r.onload = e => {
+                state.base64 = e.target.result.split(',')[1];
+                document.getElementById('preview-src').src = e.target.result;
+                document.getElementById('step-1').classList.add('hidden');
+                document.getElementById('step-2').classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            r.readAsDataURL(f);
+        };
+
+        // PHYSICAL CANVAS PAD ENGINE
+        async function getExpanded(b64, perc) {
+            if(perc == 0) return b64;
+            return new Promise(res => {
+                const i = new Image();
+                i.onload = () => {
+                    const c = document.createElement('canvas'); const ctx = c.getContext('2d');
+                    const m = perc / 100; c.width = i.width * (1 + m*2); c.height = i.height * (1 + m*2);
+                    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,c.width,c.height);
+                    ctx.drawImage(i, (c.width-i.width)/2, (c.height-i.height)/2);
+                    res(c.toDataURL('image/png').split(',')[1]);
+                };
+                i.src = `data:image/png;base64,${b64}`;
+            });
+        }
+
+        syncBtn.onclick = async () => {
+            document.getElementById('loader').classList.remove('hidden');
+            try {
+                const b64Exp = await getExpanded(state.base64, slideExp.value);
+                const lighting = slideIll.value < 0 ? `REDUCE light by ${Math.abs(slideIll.value)}%. Deep shadows.` : `INCREASE light by ${slideIll.value}%. Studio illumination.`;
+                const prompt = `
+                    DSLR 4K STUDIO RECONSTRUCTION. 
+                    STRICT DIRECTIVE: I have provided a padded canvas. You MUST use generative outpainting to fill the black margins with background context.
+                    STRICT PURGE: Detect and completely erase all UI text, boxes, stickers, or social overlays. Rebuild textures beneath them.
+                    SKIN: Soft brown midtones. Melanin calibration. No bright white clipping.
+                    USER GUIDANCE: ${document.getElementById('prompt').value || "Professional identity portrait."}
+                    ${lighting}
+                `;
+
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/png", data: b64Exp } }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } })
+                });
+                const data = await res.json();
+                const out = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                if(out) {
+                    state.gallery.unshift({ url: `data:image/png;base64,${out}` });
+                    updateGallery();
+                    showAlert("Sync Success", "New variant added to archive.");
+                } else { throw new Error(); }
+            } catch (e) { showAlert("Sync Error", "AI pipeline timed out.", "error"); }
+            finally { document.getElementById('loader').classList.add('hidden'); }
+        };
+
+        function updateGallery() {
+            const g = document.getElementById('gallery'); const count = document.getElementById('gallery-count');
+            const empty = document.getElementById('empty-msg');
+            g.innerHTML = '';
+            count.innerText = `${state.gallery.length} SYNCS`;
+            if(state.gallery.length > 0) empty.classList.add('hidden');
+            state.gallery.forEach((it, i) => {
+                const d = document.createElement('div');
+                d.className = 'aspect-[3/4] rounded-[1.5rem] overflow-hidden border border-white/10 cursor-pointer shadow-xl relative group active:scale-95 transition-all';
+                d.innerHTML = `<img src="${it.url}" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-blue-600/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"><i class="fa-solid fa-expand text-white"></i></div>`;
+                d.onclick = () => openLightbox(i);
+                g.appendChild(d);
+            });
+        }
+
+        window.openLightbox = (i) => {
+            state.index = i; document.getElementById('lb-img').src = state.gallery[i].url;
+            document.getElementById('lightbox').classList.remove('hidden');
+            document.getElementById('lightbox').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('dl-btn').onclick = () => { const a = document.createElement('a'); a.href = state.gallery[i].url; a.download='sync-4k.png'; a.click(); };
+            
+            const s = document.getElementById('lb-strip'); s.innerHTML = '';
+            state.gallery.forEach((it, idx) => {
+                const img = document.createElement('img'); img.src = it.url;
+                img.className = `w-14 h-14 object-cover rounded-xl border-2 transition-all shrink-0 ${idx === i ? 'active-thumb' : 'opacity-30 border-transparent'}`;
+                img.onclick = () => openLightbox(idx); s.appendChild(img);
+            });
+        };
+
+        window.closeLightbox = () => { 
+            document.getElementById('lightbox').classList.add('hidden');
+            document.getElementById('lightbox').classList.remove('flex');
+            document.body.style.overflow = 'auto'; 
+        };
+
+        function showAlert(t, m, ty = 'success') {
+            const c = document.getElementById('alert-container');
+            const a = document.createElement('div');
+            a.className = `glass border border-white/10 p-5 rounded-3xl shadow-2xl flex flex-col border-l-4 ${ty === 'success' ? 'border-l-blue-600' : 'border-l-red-600'}`;
+            a.innerHTML = `<h5 class="text-[10px] font-black uppercase text-white">${t}</h5><p class="text-[9px] text-gray-500 uppercase font-bold">${m}</p>`;
+            c.appendChild(a);
+            setTimeout(() => { a.style.opacity = '0'; setTimeout(() => a.remove(), 500); }, 3000);
+        }
+    </script>
+</body>
+</html>
+
+  
